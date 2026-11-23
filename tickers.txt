@@ -1,0 +1,6 @@
+# Un ticker par ligne. Recalculés chaque soir de semaine.
+NVDA
+MSFT
+MA
+AVGO
+BKNG

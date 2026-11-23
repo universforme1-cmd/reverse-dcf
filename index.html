@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Reverse DCF</title>
+<style>
+:root{--bg:#0d1117;--card:#161b23;--line:#262d38;--tx:#e8ebf0;--mut:#8b94a3;--ok:#3ccf8e;--ko:#f0616d;--warn:#e9c46a;--acc:#5aa9e6}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(12px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+h1{font-size:20px;margin:0}h1 b{color:var(--acc)}
+.icon{background:none;border:0;color:var(--mut);font-size:22px;padding:4px 8px}
+.bar{display:flex;gap:8px}
+input{background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--tx);font-size:16px;padding:11px 12px}
+.bar input{flex:1;min-width:0}
+input:focus{outline:2px solid var(--acc);outline-offset:-1px}
+button.main{background:var(--acc);color:#04121f;border:0;border-radius:10px;font-weight:700;font-size:15px;padding:0 16px}
+button.main:disabled{opacity:.5}
+#status{font-size:13px;color:var(--mut);margin-top:8px;min-height:18px}#status.err{color:var(--ko)}
+main{padding:12px 12px calc(24px + env(safe-area-inset-bottom))}
+.row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;width:100%;text-align:left;color:inherit;font:inherit}
+.badge{flex:none;width:64px;height:52px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:17px;line-height:1}
+.badge small{font-size:10px;font-weight:600;opacity:.8;margin-top:3px}
+.g{background:rgba(60,207,142,.16);color:var(--ok)}.y{background:rgba(233,196,106,.16);color:var(--warn)}.r{background:rgba(240,97,109,.14);color:var(--ko)}.n{background:#22272f;color:var(--mut)}
+.info{flex:1;min-width:0}.info .t{font-weight:700}.info .nm{color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.right{text-align:right;font-size:13px;color:var(--mut);flex:none}.right b{display:block;color:var(--tx);font-size:15px}
+.empty{color:var(--mut);text-align:center;padding:40px 20px}.foot{color:var(--mut);font-size:12px;text-align:center;margin-top:14px}
+#sheet,#settings{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;transform:translateY(100%);transition:transform .22s ease;padding:calc(10px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom));visibility:hidden}
+#sheet.open,#settings.open{transform:none;visibility:visible}
+.shtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.close{background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 14px;font-size:15px}
+h2{margin:6px 0 2px;font-size:22px}.sub{color:var(--mut);font-size:14px}
+h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin:22px 0 8px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:4px 0}.kv span{color:var(--mut)}
+.sc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.sch{display:flex;justify-content:space-between;align-items:center}
+.sch b{font-size:16px}.rend{font-size:20px;font-weight:800}
+.rates{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+.rates label{display:block;font-size:10.5px;color:var(--mut);text-align:center;margin-bottom:3px;line-height:1.15}
+.rates input{width:100%;padding:8px 2px;text-align:center;font-size:15px;border-radius:8px}
+.note{font-size:13px;color:var(--mut);margin-top:10px}
+.alert{background:rgba(233,196,106,.1);border:1px solid rgba(233,196,106,.35);color:#f1d792;border-radius:10px;padding:10px 12px;font-size:13px;margin:10px 0}
+.alert.red{background:rgba(240,97,109,.12);border-color:rgba(240,97,109,.35);color:#f7a9b0}
+.ghost{background:none;border:1px solid var(--line);color:var(--mut);border-radius:10px;padding:10px 14px;font-size:14px;width:100%;margin-top:12px}
+#settings label{display:block;font-size:13px;color:var(--mut);margin:14px 0 5px}#settings input{width:100%}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin:0 2px 10px}.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1><b>Reverse</b> DCF</h1><div><button class="icon" id="btnRefresh" aria-label="Actualiser">↻</button><button class="icon" id="btnSettings" aria-label="Réglages">⚙</button></div></div>
+  <form class="bar" id="form"><input id="ticker" placeholder="Ticker (ex. NVDA, MA)" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="15"><button class="main" id="btnGo" type="submit">Analyser</button></form>
+  <div id="status"></div>
+</header>
+<main>
+  <div class="legend" id="legend"></div>
+  <div id="list"></div><div class="foot" id="foot"></div>
+</main>
+
+<section id="sheet" aria-hidden="true">
+  <div class="shtop"><span class="sub" id="shDate"></span><button class="close" id="shClose">Fermer</button></div>
+  <div id="shBody"></div>
+</section>
+
+<section id="settings" aria-hidden="true">
+  <div class="shtop"><h2 style="margin:0">Réglages</h2><button class="close" id="stClose">Fermer</button></div>
+  <p class="note">Le jeton autorise cet appareil à lancer une analyse sur GitHub. Il reste enregistré sur cet appareil uniquement.</p>
+  <label for="stToken">Jeton GitHub (fine-grained)</label><input id="stToken" type="password" placeholder="github_pat_…" autocomplete="off">
+  <label for="stOwner">Compte GitHub</label><input id="stOwner" autocomplete="off" autocapitalize="none">
+  <label for="stRepo">Dépôt</label><input id="stRepo" autocomplete="off" autocapitalize="none">
+  <button class="main" id="stSave" style="width:100%;padding:13px;margin-top:20px">Enregistrer</button>
+  <button class="ghost" id="stReset">Rétablir les scénarios du script et les fiches retirées</button>
+  <p class="note">Outil personnel d'analyse, pas un conseil financier. Données : Yahoo Finance.</p>
+</section>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const DEFAULT_SC = {"Négatif":[-5,-5,-7,-10,-10],"Zéro":[0,0,0,0,0],"Baissier":[15,12,8,6,1],"Central":[20,15,12,9,2],"Haussier":[30,20,15,10,3]};
+const PER = [[1,5],[6,10],[11,20],[21,30]];
+const LBL = ["1–5 ans","6–10","11–20","21–30","Term."];
+let fiches = LS.get("fiches", {});
+let updated = LS.get("updated", null);
+let scScript = LS.get("scScript", DEFAULT_SC);   // scénarios fournis par le script
+let scPerso = LS.get("scPerso", null);
+let hidden = LS.get("hidden", []);           // tes modifications (null = celles du script)
+let busy = false;
+const sc = () => scPerso || scScript;
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nf = (x, d = 2) => x == null ? "n/d" : Number(x).toLocaleString("fr-CA", {minimumFractionDigits: d, maximumFractionDigits: d});
+const money = x => x == null ? "n/d" : Math.abs(x) >= 1e9 ? nf(x / 1e9) + " Md" : nf(x / 1e6, 0) + " M";
+const dt = iso => { if(!iso) return ""; const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("fr-CA", {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}); };
+const cls = r => r == null ? "n" : r >= 15 ? "g" : r >= 10 ? "y" : "r";
+const pct = r => r == null ? "n/d" : (r >= 0 ? "+" : "") + nf(r) + " %";
+
+/* ---- Même calcul que reverse-dcf.py (valeur_actuelle + bissection) ---- */
+function taux(a, t){ for(let i = 0; i < 4; i++) if(a >= PER[i][0] && a <= PER[i][1]) return t[i]; return 0; }
+function va(fcf0, capi, t, r){
+  let f = fcf0, v = 0;
+  for(let a = 1; a <= 30; a++){ f *= 1 + taux(a, t) / 100; v += f / Math.pow(1 + r, a); }
+  const g = t[4] / 100;
+  if(r <= g) return Infinity;
+  v += f * (1 + g) / (r - g) / Math.pow(1 + r, 30);
+  return v - capi;
+}
+function rendement(fcf0, capi, t){
+  if(!(fcf0 > 0) || !(capi > 0) || t.some(x => !isFinite(x))) return null;
+  let lo = -0.90, hi = 5.0;
+  if(va(fcf0, capi, t, lo) < 0) return null;
+  if(va(fcf0, capi, t, hi) > 0) return null;
+  for(let i = 0; i < 200; i++){ const m = (lo + hi) / 2, fm = va(fcf0, capi, t, m); if(fm === Infinity || fm > 0) lo = m; else hi = m; }
+  return (lo + hi) / 2 * 100;
+}
+const devMix = f => !!(f.devise && f.devise_fin && f.devise !== f.devise_fin);
+const central = f => { const t = sc()["Central"] || Object.values(sc())[0]; return rendement(f.fcf_apres_sbc, f.capi, t); };
+
+function cfg(){
+  const s = LS.get("cfg", {});
+  let owner = s.owner || "", repo = s.repo || "";
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/);
+  if(m){ if(!owner) owner = m[1]; if(!repo) repo = location.pathname.split("/").filter(Boolean)[0] || location.hostname; }
+  return {owner, repo, token: s.token || ""};
+}
+function setStatus(msg, err){ const el = $("status"); el.textContent = msg || ""; el.className = err ? "err" : ""; }
+
+function merge(obj){
+  if(!obj || typeof obj.fiches !== "object" || !obj.fiches) return;
+  for(const [t, f] of Object.entries(obj.fiches)){
+    const old = fiches[t];
+    if(!old || String(f.date_tentative || f.date || "") >= String(old.date_tentative || old.date || "")) fiches[t] = f;
+  }
+  if(obj.scenarios && typeof obj.scenarios === "object"){ scScript = obj.scenarios; LS.set("scScript", scScript); }
+  if(obj.updated && (!updated || obj.updated > updated)) updated = obj.updated;
+  LS.set("fiches", fiches); LS.set("updated", updated);
+}
+
+function render(){
+  $("legend").innerHTML = `<span>Rendement implicite, scénario central${scPerso ? " (modifié)" : ""} :</span><span><i style="background:var(--ok)"></i>≥ 15 %</span><span><i style="background:var(--warn)"></i>10–15 %</span><span><i style="background:var(--ko)"></i>&lt; 10 %</span>`;
+  const arr = Object.values(fiches).filter(f => !hidden.includes(f.ticker)).map(f => ({f, r: f.erreur || devMix(f) ? null : central(f)}))
+    .sort((a, b) => (b.r ?? -1e9) - (a.r ?? -1e9) || String(a.f.ticker).localeCompare(String(b.f.ticker)));
+  $("list").innerHTML = !arr.length ? '<div class="empty">Aucune fiche pour l’instant.<br>Tape un ticker puis « Analyser », ou lance le robot une première fois.</div>'
+    : arr.map(({f, r}) => f.erreur
+      ? `<button class="row" data-t="${esc(f.ticker)}"><div class="badge n">?</div><div class="info"><div class="t">${esc(f.ticker)}</div><div class="nm">Analyse impossible</div></div></button>`
+      : devMix(f) ? `<button class="row" data-t="${esc(f.ticker)}"><div class="badge n">⚠<small>devise</small></div><div class="info"><div class="t">${esc(f.ticker)}</div><div class="nm">FCF en ${esc(f.devise_fin)}, cours en ${esc(f.devise)}</div></div><div class="right"><b>${nf(f.prix)}</b>non comparable</div></button>`
+      : `<button class="row" data-t="${esc(f.ticker)}"><div class="badge ${cls(r)}">${r == null ? "n/d" : nf(r, 1)}<small>%/an</small></div>
+          <div class="info"><div class="t">${esc(f.ticker)}</div><div class="nm">${esc(f.nom)}</div></div>
+          <div class="right"><b>${nf(f.prix)}</b>${f.p_fcf_sbc != null ? nf(f.p_fcf_sbc, 1) + "x FCF" : "FCF ≤ 0"}</div></button>`).join("");
+  $("foot").textContent = updated ? "Données du " + dt(updated) : "";
+}
+
+function scenarioCards(f){
+  const S = sc();
+  return Object.entries(S).map(([nom, t]) => {
+    const r = rendement(f.fcf_apres_sbc, f.capi, t);
+    return `<div class="sc"><div class="sch"><b>${esc(nom)}</b><span class="rend" data-rend="${esc(nom)}" style="color:var(--${r == null ? "mut" : r >= 15 ? "ok" : r >= 10 ? "warn" : "ko"})">${pct(r)}</span></div>
+      <div class="rates">${t.map((v, i) => `<div><label>${LBL[i]}</label><input type="number" inputmode="decimal" step="1" data-sc="${esc(nom)}" data-i="${i}" value="${esc(v)}"></div>`).join("")}</div></div>`;
+  }).join("");
+}
+
+function openSheet(t){
+  const f = fiches[t]; if(!f) return;
+  $("shDate").textContent = "Données du " + dt(f.date);
+  let h;
+  if(f.erreur){
+    h = `<h2>${esc(f.ticker)}</h2><div class="alert red">Analyse impossible : ${esc(f.erreur)}</div><p class="note">Vérifie le symbole tel qu’il apparaît sur Yahoo Finance.</p>`;
+  } else {
+    const ydf = f.fcf_apres_sbc > 0 && f.capi ? f.fcf_apres_sbc / f.capi * 100 : null;
+    const devWarn = devMix(f);
+    h = `<h2>${esc(f.ticker)} <span style="font-weight:400;color:var(--mut);font-size:16px">${nf(f.prix)} ${esc(f.devise || "")}</span></h2>
+      <div class="sub">${esc(f.nom)}</div>
+      ${f.erreur_maj ? `<div class="alert red">La dernière mise à jour a échoué (${esc(f.erreur_maj)}). Données du ${dt(f.date)}.</div>` : ""}
+      ${devWarn ? `<div class="alert">Devises différentes : cours et capitalisation en ${esc(f.devise)}, états financiers en ${esc(f.devise_fin)}. Le FCF n’est pas converti, donc les rendements de cette fiche sont faux tant que ce n’est pas corrigé.</div>` : ""}
+      ${!(f.fcf_apres_sbc > 0) ? `<div class="alert red">FCF après SBC négatif ou nul : aucun rendement implicite calculable.</div>` : ""}
+      <h3>Les données</h3><div class="box">
+        <div class="kv"><span>Capitalisation</span><b>${money(f.capi)}</b></div>
+        <div class="kv"><span>Actions en circulation</span><b>${f.actions ? nf(f.actions / 1e6, 0) + " M" : "n/d"}</b></div>
+        <div class="kv"><span>FCF 12 mois avant SBC</span><b>${money(f.fcf)}</b></div>
+        <div class="kv"><span>SBC 12 mois</span><b>${f.sbc == null ? "n/d (non ventilée)" : money(f.sbc)}</b></div>
+        <div class="kv"><span>FCF après SBC</span><b>${money(f.fcf_apres_sbc)}</b></div>
+        <div class="kv"><span>P/FCF avant / après SBC</span><b>${f.p_fcf ? nf(f.p_fcf, 1) + "x" : "n/d"} / ${f.p_fcf_sbc ? nf(f.p_fcf_sbc, 1) + "x" : "n/d"}</b></div>
+        <div class="kv"><span>Rendement FCF après SBC</span><b>${ydf == null ? "n/d" : nf(ydf) + " %"}</b></div>
+      </div>
+      <h3>Scénarios : croissance %/an → rendement implicite</h3>
+      <div id="scWrap">${scenarioCards(f)}</div>
+      <p class="note">Modifie un taux : le rendement se recalcule tout de suite, et la modification s’applique à toutes les fiches de cet appareil. Contrôle : le scénario Zéro doit donner le rendement FCF après SBC (${ydf == null ? "n/d" : nf(ydf) + " %"}).</p>
+      <button class="ghost" id="scReset">Revenir aux scénarios du script</button>
+      <h3>Comment lire</h3><div class="box"><p class="note" style="margin:0">Le rendement implicite est ce que tu gagnerais chaque année en achetant à la capitalisation actuelle, si le FCF après SBC suivait le scénario pendant 30 ans puis la croissance terminale. Si même le scénario central donne moins que ton objectif, le prix paie déjà une croissance très forte.</p></div>`;
+  }
+  h += `<button class="main" style="width:100%;padding:13px;margin-top:22px" data-again="${esc(f.ticker)}">Relancer l’analyse</button>
+        <button class="ghost" data-del="${esc(f.ticker)}">Retirer de ma liste</button>`;
+  $("shBody").innerHTML = h; $("shBody").dataset.t = t;
+  $("sheet").classList.add("open"); $("sheet").setAttribute("aria-hidden", "false"); $("sheet").scrollTop = 0;
+}
+function closeAll(){ for(const id of ["sheet", "settings"]){ $(id).classList.remove("open"); $(id).setAttribute("aria-hidden", "true"); } render(); }
+
+async function load(quiet){
+  try{
+    const r = await fetch("data.json?t=" + Date.now(), {cache: "no-store"});
+    if(!r.ok) throw new Error(r.status === 404 ? "pas encore de fiches (lance le robot une première fois)" : "HTTP " + r.status);
+    merge(await r.json()); render(); if(!quiet && !busy) setStatus("");
+  }catch(e){
+    render(); if(!busy) setStatus(Object.keys(fiches).length ? "Hors ligne — fiches enregistrées affichées." : "Données indisponibles : " + e.message, !Object.keys(fiches).length);
+  }
+}
+
+const gh = (path, opt = {}) => { const c = cfg(); return fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/${path}`, Object.assign({}, opt, {headers: Object.assign({"Authorization": "Bearer " + c.token, "X-GitHub-Api-Version": "2022-11-28", "Accept": "application/vnd.github+json"}, opt.headers || {})})); };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function analyser(raw){
+  const t = String(raw || "").trim().toUpperCase();
+  if(!/^[A-Z0-9][A-Z0-9.\-=^]{0,14}$/.test(t)){ setStatus("Ticker invalide.", true); return; }
+  const c = cfg();
+  if(!c.token || !c.owner || !c.repo){ setStatus("Ajoute d’abord ton jeton GitHub dans les réglages.", true); openSettings(); return; }
+  if(busy) return;
+  busy = true; $("btnGo").disabled = true; closeAll();
+  const before = fiches[t] ? String(fiches[t].date_tentative || fiches[t].date || "") : "";
+  try{
+    setStatus(`Lancement de l’analyse de ${t}…`);
+    const r = await gh("actions/workflows/rdcf.yml/dispatches", {method: "POST", body: JSON.stringify({ref: "main", inputs: {tickers: t}})});
+    if(r.status === 401 || r.status === 403) throw new Error("jeton refusé — vérifie ses permissions (Actions : lecture et écriture) et qu’il donne accès à ce dépôt.");
+    if(r.status === 404) throw new Error("dépôt ou robot introuvable — vérifie le compte, le dépôt et le fichier rdcf.yml.");
+    if(r.status !== 204) throw new Error("GitHub a répondu " + r.status);
+    const t0 = Date.now(); let found = null;
+    while(Date.now() - t0 < 300000){
+      setStatus(`Analyse de ${t} en cours… ${Math.round((Date.now() - t0) / 1000)} s (1 à 3 minutes)`);
+      await sleep(8000);
+      try{
+        const g = await gh("contents/data.json?ref=main&t=" + Date.now(), {headers: {"Accept": "application/vnd.github.raw+json"}, cache: "no-store"});
+        if(g.ok){ const j = await g.json(); const f = j.fiches && j.fiches[t];
+          if(f && String(f.date_tentative || f.date || "") !== before){ found = j; break; } }
+      }catch(e){}
+    }
+    if(!found) throw new Error("délai dépassé. Regarde l’onglet Actions du dépôt, puis touche ↻.");
+    merge(found); hidden = hidden.filter(x => x !== t); LS.set("hidden", hidden); render(); setStatus(""); $("ticker").value = ""; openSheet(t);
+  }catch(e){ setStatus("Échec : " + e.message, true); }
+  finally{ busy = false; $("btnGo").disabled = false; }
+}
+
+function openSettings(){
+  const c = cfg(); $("stToken").value = c.token; $("stOwner").value = c.owner; $("stRepo").value = c.repo;
+  $("settings").classList.add("open"); $("settings").setAttribute("aria-hidden", "false");
+}
+function resetSc(){ scPerso = null; LS.del("scPerso"); }
+
+$("form").addEventListener("submit", e => { e.preventDefault(); $("ticker").blur(); analyser($("ticker").value); });
+$("list").addEventListener("click", e => { const b = e.target.closest("[data-t]"); if(b) openSheet(b.dataset.t); });
+$("shBody").addEventListener("input", e => {
+  const inp = e.target.closest("input[data-sc]"); if(!inp) return;
+  const v = parseFloat(String(inp.value).replace(",", "."));
+  if(!isFinite(v)) return;
+  if(!scPerso) scPerso = JSON.parse(JSON.stringify(scScript));
+  scPerso[inp.dataset.sc][+inp.dataset.i] = v; LS.set("scPerso", scPerso);
+  const f = fiches[$("shBody").dataset.t], nom = inp.dataset.sc, r = rendement(f.fcf_apres_sbc, f.capi, scPerso[nom]);
+  const el = $("shBody").querySelector(`[data-rend="${CSS.escape(nom)}"]`);
+  el.textContent = pct(r); el.style.color = `var(--${r == null ? "mut" : r >= 15 ? "ok" : r >= 10 ? "warn" : "ko"})`;
+});
+$("shBody").addEventListener("click", e => {
+  if(e.target.id === "scReset"){ resetSc(); openSheet($("shBody").dataset.t); return; }
+  const a = e.target.closest("[data-again]"); if(a){ analyser(a.dataset.again); return; }
+  const d = e.target.closest("[data-del]"); if(d){ hidden.push(d.dataset.del); LS.set("hidden", hidden); closeAll(); }
+});
+$("shClose").onclick = closeAll; $("stClose").onclick = closeAll;
+$("btnSettings").onclick = openSettings;
+$("btnRefresh").onclick = () => { setStatus("Actualisation…"); load(); };
+$("stSave").onclick = () => { LS.set("cfg", {token: $("stToken").value.trim(), owner: $("stOwner").value.trim(), repo: $("stRepo").value.trim()}); closeAll(); setStatus("Réglages enregistrés."); };
+$("stReset").onclick = () => { resetSc(); hidden = []; LS.set("hidden", hidden); closeAll(); setStatus("Scénarios du script rétablis, fiches retirées réaffichées."); };
+document.addEventListener("visibilitychange", () => { if(!document.hidden) load(true); });
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+render(); load();
+</script>
+</body>
+</html>
